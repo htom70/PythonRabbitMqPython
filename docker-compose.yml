@@ -1,0 +1,51 @@
+#version: "3.9"
+
+services:
+  rabbitmq:
+    container_name: rabbitmq
+    image: "rabbitmq:3-management"
+    command: rabbitmq-server
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    #    restart: always
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 5s
+      timeout: 20s
+      retries: 5
+
+  sender:
+    build:
+      context: ./send
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - 5001:5001
+    networks:
+      - backend
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  receiver:
+    build:
+      context: ./receive
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - 5002:5002
+    networks:
+      - backend
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+
+
+networks:
+  backend:
+    name: backend
+
